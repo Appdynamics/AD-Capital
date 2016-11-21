@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-3.0.xsd
+       http://www.springframework.org/schema/jdbc
+       http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd">
+
+
+    <bean id="springContext" class="com.appdynamics.loan.util.SpringContext" />
+
+    <bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName" value="java:comp/env/jdbc/ECommerceDB"/>
+    </bean>
+
+
+    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="persistenceUnitName" value="pu"/>
+        <property name="jpaVendorAdapter">
+            <bean  class="org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter">
+
+                <property name="showSql" value="true"/>
+                <property name="generateDdl" value="false"/>
+                <property name="database" value="MYSQL"/>
+            </bean>
+        </property>
+    </bean>
+
+
+
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+    <bean id="entityManagerHolder" class="com.appdynamics.loan.persistence.EntityManagerHolder">
+        <property name="entityManagerFactory">
+            <ref bean="entityManagerFactory" />
+        </property>
+    </bean>
+
+    <bean id="dbProvider" class="com.appdynamics.loan.persistence.BasePersistenceImpl">
+        <property name="entityManagerFactory">
+            <ref bean="entityManagerFactory" />
+        </property>
+    </bean>
+
+    <bean id="applicationsPersistence"
+          class="com.appdynamics.loan.persistence.ApplicationsPersistence" parent="dbProvider">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+    </bean>
+
+    <bean id="applicationsServiceTarget"
+          class="com.appdynamics.loan.service.ApplicationsService">
+        <property name="applicationsPersistence" ref="applicationsPersistence"/>
+    </bean>
+
+    <bean id="applicationsService"
+          class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager"><ref bean="transactionManager"/></property>
+        <property name="target" ref="applicationsServiceTarget"></property>
+        <property name="proxyTargetClass"><value>true</value></property>
+        <property name="transactionAttributes">
+            <props>
+                <prop key="get*">PROPAGATION_SUPPORTS</prop>
+                <prop key="save*">PROPAGATION_REQUIRED</prop>
+                <prop key="update*">PROPAGATION_REQUIRED</prop>
+                <prop key="delete*">PROPAGATION_REQUIRED</prop>
+                <prop key="*">PROPAGATION_REQUIRED</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="customerPersistence"
+          class="com.appdynamics.loan.persistence.CustomerPersistence" parent="dbProvider">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+    </bean>
+
+    <bean id="customerServiceTarget"
+          class="com.appdynamics.loan.service.CustomerService">
+        <property name="customerPersistence" ref="customerPersistence"/>
+    </bean>
+
+    <bean id="customerService"
+          class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager"><ref bean="transactionManager"/></property>
+        <property name="target" ref="customerServiceTarget"></property>
+        <property name="proxyTargetClass"><value>true</value></property>
+        <property name="transactionAttributes">
+            <props>
+                <prop key="get*">PROPAGATION_SUPPORTS</prop>
+                <prop key="save*">PROPAGATION_REQUIRED</prop>
+                <prop key="update*">PROPAGATION_REQUIRED</prop>
+                <prop key="delete*">PROPAGATION_REQUIRED</prop>
+                <prop key="*">PROPAGATION_REQUIRED</prop>
+            </props>
+        </property>
+    </bean>
+
+    <tx:annotation-driven proxy-target-class="true"/>
+    <bean class="org.springframework.orm.jpa.support.PersistenceAnnotationBeanPostProcessor" />
+
+</beans>
+

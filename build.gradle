@@ -1,0 +1,39 @@
+import groovy.sql.Sql
+
+allprojects {
+	apply plugin : 'idea'
+	apply plugin : 'groovy'
+	repositories {
+		mavenCentral()
+	}
+	sourceCompatibility = 7;
+
+}
+
+compileJava {
+	options.compilerArgs = ['-XDignore.symbol.file=true'];
+}
+
+configurations {
+	driver
+}
+
+dependencies {
+	driver group: 'mysql', name: 'mysql-connector-java', version: '5.1.33'
+}
+
+URLClassLoader loader = GroovyObject.class.classLoader
+configurations.driver.each { File file ->
+	loader.addURL(file.toURL())
+}
+
+task createDB << {
+	def  props = new Properties();
+	File propFile =
+			new File('database.properties')
+	props.load(propFile.newDataInputStream())
+	def sql = Sql.newInstance(props.get('mysql.url') +'&allowMultiQueries=true', props.get('mysql.username'), props.get('mysql.password'), 'com.mysql.jdbc.Driver');
+	String  sqlFilePath ="schema.sql"
+	String sqlString = new File(sqlFilePath).text
+	sql.execute(sqlString);
+}

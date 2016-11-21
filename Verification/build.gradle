@@ -1,0 +1,39 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'application'
+
+sourceCompatibility=1.7
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project(':Models');
+    compile 'commons-cli:commons-cli:1.1';
+    compile 'commons-io:commons-io:1.2';
+    compile 'org.apache.commons:commons-lang3:3.4';
+    compile 'commons-logging:commons-logging:1.2';
+    compile 'com.rabbitmq:amqp-client:3.5.4';
+    compile 'mysql:mysql-connector-java:5.1.33';
+}
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+        output.resourcesDir = "build/classes/main/com/appdynamics/loan/verification"
+    }
+}
+
+mainClassName = 'com.appdynamics.loan.verification.RabbitMQConfig';
+
+task uberjar(type: Jar, dependsOn: 'build') {
+    from files(sourceSets.main.output.classesDir)
+    from('../Models/build/classes/main')
+    from configurations.runtime.asFileTree.files.collect { zipTree(it) }
+    exclude 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.SF'
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+}

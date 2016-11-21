@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+    <Resource name="jdbc/ECommerceDB" auth="Container" type="javax.sql.DataSource" maxActive="5" maxIdle="5" maxWait="100" jmxEnabled="true" username="root" password="welcome1" driverClassName="com.mysql.jdbc.Driver" url="jdbc:mysql://adcapitaldb:3306/loan?useUnicode=true&amp;characterEncoding=UTF-8&amp;autoReconnect=true"/>
+</Context>
