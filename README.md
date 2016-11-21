@@ -1,6 +1,10 @@
 ## AD-Capital
 
-Appdynamics Transaction Analytics demo application
+Appdynamics Transaction Analytics demo application.
+
+**PLEASE NOTE: This repository has been recreated. If you previously cloned this repository, you should delete the original and re-clone. Apologies for any inconveience**
+
+See [AppDynamics/AD-Capital-Docker](https://github.com/Appdynamics/AD-Capital-Docker) for Docker container support.
 
 ### Docker
 1. Add AppServerAgent.zip, AnalyticsAgent.zip, Oracle JDK 7 and Maven distros to build directory
