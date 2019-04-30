@@ -61,7 +61,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
                 double adjustedAmount = this.currentApplication.getAmount();
 
                 // offer platinum members more money based on their credit score
-                if (currentCustomer != null && currentCustomer.getLevel() == "Platinum"){
+                if (currentCustomer != null && isPremiumCustomer()){
                     long coeff = MAX_SCORE-currentCustomer.getCreditScore()/MAX_SCORE;
                     double adjustment = this.currentApplication.getAmount()/coeff;
                     adjustedAmount += adjustment;
@@ -70,7 +70,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
                 // Update Status
                 updateApplicationStatus(approve);
 
-                message = "Customer ID:" + customerid + " FICO Score: " + score + " Approved: " + approve + " Proposed Amount: " + adjustedAmount;
+                message = "Customer ID:" + customerid + " FICO Score: " + score + " Level: " + currentCustomer.getLevel() + " Approved: " + approve + " Proposed Amount: " + adjustedAmount;
 
             }
 
@@ -88,6 +88,10 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
             e.printStackTrace(pw);
             log.error(writer.toString());
         }
+    }
+
+    private boolean isPremiumCustomer(){
+        return (currentCustomer != null && (currentCustomer.getLevel() == "Platinum" || currentCustomer.getLevel() == "Gold"));
     }
 
     private boolean updateApplicationStatus(boolean approve) {
