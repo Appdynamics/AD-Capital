@@ -5,6 +5,7 @@ import com.appdynamics.loan.model.Customer;
 import com.appdynamics.loan.service.ApplicationsService;
 import com.appdynamics.loan.service.CustomerService;
 import com.appdynamics.loan.util.SpringContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -61,7 +62,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
                 double adjustedAmount = this.currentApplication.getAmount();
 
                 // offer platinum members more money based on their credit score
-                if (currentCustomer != null && isPremiumCustomer()){
+                if (isPremiumCustomer()){
                     long coeff = MAX_SCORE-currentCustomer.getCreditScore()/MAX_SCORE;
                     double adjustment = this.currentApplication.getAmount()/coeff;
                     adjustedAmount += adjustment;
@@ -91,7 +92,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
     }
 
     private boolean isPremiumCustomer(){
-        return (currentCustomer != null && (currentCustomer.getLevel() == "Platinum" || currentCustomer.getLevel() == "Gold"));
+        return (currentCustomer != null && StringUtils.equals(currentCustomer.getLevel(), "Gold") );
     }
 
     private boolean updateApplicationStatus(boolean approve) {
