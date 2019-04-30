@@ -23,7 +23,6 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
     int customerid;
     String applicationid;
     int score;
-    Customer currentCustomer = null;
     Applications currentApplication = null;
 
     private static final Logger log = Logger.getLogger(CreditCheck.class.getName());
@@ -44,7 +43,6 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
     protected void doGet(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response)
             throws javax.servlet.ServletException, IOException {
         try {
-            boolean approve = true;
             boolean found;
             String message = "No application found for credit approval";
 
@@ -53,25 +51,16 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
 
             if (found) {
                 // Check FICO Score
-                getFICOScore();
+                Customer currentCustomer = getFICOScore();
 
-                // Decide
-                if (score < 650)
-                    approve = false;
-
-                double adjustedAmount = this.currentApplication.getAmount();
-
-                // offer platinum members more money based on their credit score
-                if (isPremiumCustomer()){
-                    long coeff = (MAX_SCORE-currentCustomer.getCreditScore())/MAX_SCORE;
-                    double adjustment = this.currentApplication.getAmount()/coeff;
-                    adjustedAmount += adjustment;
-                }
-
-                // Update Status
-                updateApplicationStatus(approve);
+                double adjustedAmount = Check(currentCustomer);
+                boolean approve = adjustedAmount > 0;
 
                 message = "Customer ID:" + customerid + " FICO Score: " + score + " Level: " + currentCustomer.getLevel() + " Approved: " + approve + " Proposed Amount: " + adjustedAmount;
+
+
+                // Update Status
+                updateApplication(approve, currentCustomer, adjustedAmount);
 
             }
 
@@ -91,8 +80,32 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
         }
     }
 
-    private boolean isPremiumCustomer(){
-        return (currentCustomer != null && StringUtils.equals(currentCustomer.getLevel(), "Gold") );
+    private double Check(Customer currentCustomer){
+
+        // Decide
+        if (score < 650)
+            return 0;
+
+        double adjustedAmount = this.currentApplication.getAmount();
+
+        // offer platinum members more money based on their credit score
+        if (isPremiumCustomer(currentCustomer)){
+            long coeff = (MAX_SCORE-currentCustomer.getCreditScore())/MAX_SCORE;
+            double adjustment = this.currentApplication.getAmount()/coeff;
+            adjustedAmount += adjustment;
+        }
+        return adjustedAmount;
+    }
+
+    private void updateApplication(boolean approve, Customer currentCustomer, double amount){
+        updateApplicationStatus(approve);
+        if (approve) {
+            log.info("Approving application for customer: " + currentCustomer.getName() + " for amount $" + amount);
+        }
+    }
+
+    private boolean isPremiumCustomer(Customer currentCustomer){
+        return (currentCustomer != null && StringUtils.equals(currentCustomer.getLevel(), "Platinum") );
     }
 
     private boolean updateApplicationStatus(boolean approve) {
@@ -118,11 +131,11 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
         return success;
     }
 
-    private void getFICOScore() {
+    private Customer getFICOScore() {
+        Customer customer = null;
         try {
-            Customer customer = getCustomerService().getMemberById(this.customerid);
+            customer = getCustomerService().getMemberById(this.customerid);
             if (customer != null) {
-                this.currentCustomer = customer;
                 this.score = customer.getCreditScore();
                 log.info("Credit SCore: " + this.score);
             } else {
@@ -135,6 +148,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
             e.printStackTrace(pw);
             log.error(writer.toString());
         }
+        return customer;
     }
 
     private boolean getApplicationForCreditCheck() {

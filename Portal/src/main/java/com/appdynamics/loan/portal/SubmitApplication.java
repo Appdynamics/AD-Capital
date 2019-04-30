@@ -30,10 +30,6 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
     private static final Logger log = Logger.getLogger(SubmitApplication.class.getName());
 
-    public CustomerService getCustomerService() {
-        return (CustomerService) SpringContext.getBean("customerService");
-    }
-
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
@@ -70,14 +66,10 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
         LoanApplication application = new LoanApplication(username, passcode, loanType, amount);
         message += application.getApplicationId();
         log.info(message);
-        String level = "unknown";
-        Customer c = getCustomer(username);
-        if (c != null) {
-            level = c.getLevel();
-        }
+
         //Submit loan application object to queue
         try {
-            submitLoanApplication(application, level);
+            submitLoanApplication(application);
         } catch (TimeoutException ex) {
             message = "Error Submitting Application" + ex.getMessage();
             log.error("Error Submitting Application" +ex.getMessage());
@@ -88,7 +80,7 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
     }
 
-    private void submitLoanApplication(LoanApplication application, String customerLevel) throws TimeoutException, IOException {
+    private void submitLoanApplication(LoanApplication application) throws TimeoutException, IOException {
 
         ConnectionFactory factory = new ConnectionFactory();
         try {
@@ -110,7 +102,7 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
             channel.queueDeclare(queueName, false, false, false, null);
             byte[] message = SerializationUtils.serialize(application);
             channel.basicPublish("", queueName, null, message);
-            log.info(" [x] Sent '" + application.getLoanType() + "'" + " customer level: " + customerLevel);
+            log.info(" [x] Sent '" + application.getLoanType() + "'");
 
             channel.close();
             connection.close();
@@ -177,20 +169,6 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
             log.error(ex.getMessage());
         }
         return null;
-    }
-
-    private Customer getCustomer(String customerName) {
-        Customer customer = null;
-        try {
-            customer = getCustomerService().getMemberByName(customerName);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            StringWriter writer = new StringWriter();
-            PrintWriter pw = new PrintWriter(writer);
-            e.printStackTrace(pw);
-            log.error(writer.toString());
-        }
-        return customer;
     }
 
 }
