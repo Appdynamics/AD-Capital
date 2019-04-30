@@ -1,7 +1,9 @@
 package com.appdynamics.loan.processor;
 
 import com.appdynamics.loan.model.Applications;
+import com.appdynamics.loan.model.Customer;
 import com.appdynamics.loan.service.ApplicationsService;
+import com.appdynamics.loan.service.CustomerService;
 import com.appdynamics.loan.util.SpringContext;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -50,7 +52,12 @@ public class Underwrite extends HttpServlet {
             int num = (int)(Math.random()*99 + 1);
             if (num > 10)
                 try {
-                    sendToUnderwriter(this.applicationid);
+                    String level = "";
+                    Customer c = getCustomer(this.customerid);
+                    if (c != null) {
+                        level = c.getLevel();
+                    }
+                    sendToUnderwriter(this.applicationid, level);
                 } catch (TimeoutException e) {
                     e.printStackTrace();
                 }
@@ -64,7 +71,7 @@ public class Underwrite extends HttpServlet {
 
     }
 
-    private boolean sendToUnderwriter(String applicationid) throws TimeoutException, IOException {
+    private boolean sendToUnderwriter(String applicationid, String level) throws TimeoutException, IOException {
         boolean approved = true;
 
         ConnectionFactory factory = new ConnectionFactory();
@@ -80,7 +87,7 @@ public class Underwrite extends HttpServlet {
             // Create queue if it doesn't exist
             channel.queueDeclare(queueName, false, false, false, null);
             channel.basicPublish("", queueName, null, applicationid.getBytes());
-            log.info(" [x] Sent '" + applicationid + "'");
+            log.info(" [x] Sent '" + applicationid + "'" + " customer level: " + level);
 
             channel.close();
             connection.close();
@@ -138,5 +145,24 @@ public class Underwrite extends HttpServlet {
             log.error(ex.getMessage());
         }
         return null;
+    }
+
+
+    public CustomerService getCustomerService() {
+        return (CustomerService) SpringContext.getBean("customerService");
+    }
+
+    private Customer getCustomer(int customerId) {
+        Customer customer = null;
+        try {
+            customer = getCustomerService().getMemberById(customerId);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            StringWriter writer = new StringWriter();
+            PrintWriter pw = new PrintWriter(writer);
+            e.printStackTrace(pw);
+            log.error(writer.toString());
+        }
+        return customer;
     }
 }

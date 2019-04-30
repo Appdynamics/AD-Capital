@@ -2,6 +2,9 @@ package com.appdynamics.loan.portal;
 
 import com.appdynamics.loan.common.LoanApplication;
 import com.appdynamics.loan.common.UserData;
+import com.appdynamics.loan.model.Customer;
+import com.appdynamics.loan.service.CustomerService;
+import com.appdynamics.loan.util.SpringContext;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -14,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.concurrent.TimeoutException;
@@ -25,6 +29,10 @@ import java.util.concurrent.TimeoutException;
 public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
     private static final Logger log = Logger.getLogger(SubmitApplication.class.getName());
+
+    public CustomerService getCustomerService() {
+        return (CustomerService) SpringContext.getBean("customerService");
+    }
 
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -62,10 +70,14 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
         LoanApplication application = new LoanApplication(username, passcode, loanType, amount);
         message += application.getApplicationId();
         log.info(message);
-
+        String level = "unknown";
+        Customer c = getCustomer(username);
+        if (c != null) {
+            level = c.getLevel();
+        }
         //Submit loan application object to queue
         try {
-            submitLoanApplication(application);
+            submitLoanApplication(application, level);
         } catch (TimeoutException ex) {
             message = "Error Submitting Application" + ex.getMessage();
             log.error("Error Submitting Application" +ex.getMessage());
@@ -76,7 +88,7 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
     }
 
-    private void submitLoanApplication(LoanApplication application) throws TimeoutException, IOException {
+    private void submitLoanApplication(LoanApplication application, String customerLevel) throws TimeoutException, IOException {
 
         ConnectionFactory factory = new ConnectionFactory();
         try {
@@ -98,7 +110,7 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
             channel.queueDeclare(queueName, false, false, false, null);
             byte[] message = SerializationUtils.serialize(application);
             channel.basicPublish("", queueName, null, message);
-            log.info(" [x] Sent '" + application + "'");
+            log.info(" [x] Sent '" + application.getLoanType() + "'" + " customer level: " + customerLevel);
 
             channel.close();
             connection.close();
@@ -165,6 +177,20 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
             log.error(ex.getMessage());
         }
         return null;
+    }
+
+    private Customer getCustomer(String customerName) {
+        Customer customer = null;
+        try {
+            customer = getCustomerService().getMemberByName(customerName);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            StringWriter writer = new StringWriter();
+            PrintWriter pw = new PrintWriter(writer);
+            e.printStackTrace(pw);
+            log.error(writer.toString());
+        }
+        return customer;
     }
 
 }
