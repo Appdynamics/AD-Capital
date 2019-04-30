@@ -18,9 +18,12 @@ import java.util.UUID;
 @javax.servlet.annotation.WebServlet(name = "CreditCheck", urlPatterns = {"/CreditCheck"})
 public class CreditCheck extends javax.servlet.http.HttpServlet {
 
+    final static int MAX_SCORE = 800;
     int customerid;
     String applicationid;
     int score;
+    Customer currentCustomer = null;
+    Applications currentApplication = null;
 
     private static final Logger log = Logger.getLogger(CreditCheck.class.getName());
 
@@ -55,10 +58,19 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
                 if (score < 650)
                     approve = false;
 
+                double adjustedAmount = this.currentApplication.getAmount();
+
+                // offer platinum members more money based on their credit score
+                if (currentCustomer != null && currentCustomer.getLevel() == "Platinum"){
+                    long coeff = MAX_SCORE-currentCustomer.getCreditScore()/MAX_SCORE;
+                    double adjustment = this.currentApplication.getAmount()/coeff;
+                    adjustedAmount += adjustment;
+                }
+
                 // Update Status
                 updateApplicationStatus(approve);
 
-                message = "Customer ID:" + customerid + " FICO Score: " + score + "Approved: " + approve;
+                message = "Customer ID:" + customerid + " FICO Score: " + score + " Approved: " + approve + " Proposed Amount: " + adjustedAmount;
 
             }
 
@@ -105,6 +117,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
         try {
             Customer customer = getCustomerService().getMemberById(this.customerid);
             if (customer != null) {
+                this.currentCustomer = customer;
                 this.score = customer.getCreditScore();
                 log.info("Credit SCore: " + this.score);
             } else {
@@ -124,6 +137,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
         try {
             Applications applications = getApplicationsService().getApplicationsWithCCStatus();
             if (applications != null) {
+                this.currentApplication = applications;
                 found = true;
                 this.customerid = applications.getCustomerId();
                 this.applicationid = applications.getId().toLowerCase();
