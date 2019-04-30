@@ -83,7 +83,7 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
             String str_uri = "ec25-55-242-38-169.compute-1.amazonaws.com";
 
-            if(!generateErrors())
+            if(!useExternalService())
                 str_uri = GetRabbitMQURLFromConfigFiles();
 
             URI uri = new URI(str_uri);
@@ -108,16 +108,20 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
     }
 
-    private boolean generateErrors()
+    private boolean useExternalService()
     {
         boolean flag = false;
         Calendar calendar = Calendar.getInstance();
         int minutes = calendar.get(calendar.MINUTE);
 
-        if (minutes <= 7)
+        if (minutes <= 5)
             flag = true;
 
-        if (minutes >= 40 && minutes <=47)
+        if (minutes >= 20 && minutes <=25)
+            flag = true;
+
+
+        if (minutes >= 40 && minutes <=45)
             flag = true;
 
         return flag;
