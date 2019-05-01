@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -44,6 +45,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
             throws javax.servlet.ServletException, IOException {
         try {
             boolean found;
+            boolean approve = false;
             String message = "No application found for credit approval";
 
             // Get Next Application for credit processing
@@ -53,15 +55,25 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
                 // Check FICO Score
                 Customer currentCustomer = getFICOScore();
 
-                double adjustedAmount = Check(currentCustomer);
-                boolean approve = adjustedAmount > 0;
+                // Decide
+                if (score < 650)
+                    approve  = true;
+
+                double adjustedAmount = this.currentApplication.getAmount();
+
+                // offer platinum members higher loan amounts based on the credit score
+                if (qualifiesForPromo() && isPremiumCustomer(currentCustomer)){
+                    long coeff = (MAX_SCORE-currentCustomer.getCreditScore())/MAX_SCORE;
+                    double adjustment = this.currentApplication.getAmount()/coeff;
+                    adjustedAmount += adjustment;
+                }
+
 
                 message = "Customer ID:" + customerid + " FICO Score: " + score + " Level: " + currentCustomer.getLevel() + " Approved: " + approve + " Proposed Amount: " + adjustedAmount;
 
 
                 // Update Status
-                updateApplication(approve, currentCustomer, adjustedAmount);
-
+                updateApplicationStatus(approve);
             }
 
             response.setContentType("text/html");
@@ -80,32 +92,17 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
         }
     }
 
-    private double Check(Customer currentCustomer){
 
-        // Decide
-        if (score < 650)
-            return 0;
-
-        double adjustedAmount = this.currentApplication.getAmount();
-
-        // offer platinum members more money based on their credit score
-        if (isPremiumCustomer(currentCustomer)){
-            long coeff = (MAX_SCORE-currentCustomer.getCreditScore())/MAX_SCORE;
-            double adjustment = this.currentApplication.getAmount()/coeff;
-            adjustedAmount += adjustment;
-        }
-        return adjustedAmount;
-    }
-
-    private void updateApplication(boolean approve, Customer currentCustomer, double amount){
-        updateApplicationStatus(approve);
-        if (approve) {
-            log.info("Approving application for customer: " + currentCustomer.getName() + " for amount $" + amount);
-        }
-    }
 
     private boolean isPremiumCustomer(Customer currentCustomer){
         return (currentCustomer != null && StringUtils.equals(currentCustomer.getLevel(), "Platinum") );
+    }
+
+    private boolean qualifiesForPromo(){
+        int max = 10;
+        Random random = new Random();
+        int next = random.nextInt(max ) + 1;
+        return next < max/2;
     }
 
     private boolean updateApplicationStatus(boolean approve) {
