@@ -102,7 +102,7 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
         int max = 10;
         Random random = new Random();
         int next = random.nextInt(max ) + 1;
-        return next < max/2;
+        return next <= max/2 + max/5; //70%
     }
 
     private boolean updateApplicationStatus(boolean approve) {
