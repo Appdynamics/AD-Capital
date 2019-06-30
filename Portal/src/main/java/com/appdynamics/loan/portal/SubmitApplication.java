@@ -20,6 +20,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.Calendar;
+import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -114,21 +115,10 @@ public class SubmitApplication extends javax.servlet.http.HttpServlet {
 
     private boolean useExternalService()
     {
-        boolean flag = false;
-        Calendar calendar = Calendar.getInstance();
-        int minutes = calendar.get(calendar.MINUTE);
-
-        if (minutes <= 5)
-            flag = true;
-
-        if (minutes >= 20 && minutes <=25)
-            flag = true;
-
-
-        if (minutes >= 40 && minutes <=45)
-            flag = true;
-
-        return flag;
+        int max = 10;
+        Random random = new Random();
+        int next = random.nextInt(max ) + 1;
+        return next <= max * 0.7;
     }
 
     private String generateLoanType() {

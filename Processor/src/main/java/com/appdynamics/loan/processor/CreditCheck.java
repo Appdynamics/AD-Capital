@@ -95,7 +95,8 @@ public class CreditCheck extends javax.servlet.http.HttpServlet {
 
 
     private boolean isPremiumCustomer(Customer currentCustomer){
-        return (currentCustomer != null && StringUtils.equals(currentCustomer.getLevel(), "Platinum") );
+        return (currentCustomer != null &&
+                (StringUtils.equals(currentCustomer.getLevel(), "Platinum")  || StringUtils.equals(currentCustomer.getLevel(), "Gold") ));
     }
 
     private boolean qualifiesForPromo(){
